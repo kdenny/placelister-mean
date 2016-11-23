@@ -113,6 +113,8 @@ app.directive('googleplace', function() {
                     scope.address = textAddress;
                     scope.city = addressComponents[0];
                     scope.state = addressComponents[1];
+                    scope.lat = latitude;
+                    scope.lon = longitude;
                     scope.url = url;
                     model.$setViewValue(element.val());
                 });
@@ -144,6 +146,7 @@ app.factory('lists', ['$http', 'auth', function($http, auth){
 
     o.get = function(id) {
       return $http.get('/lists/' + id).then(function(res){
+        console.log(res.data)
         return res.data;
       });
     };
@@ -266,6 +269,8 @@ function($scope, lists, list, auth){
     $scope.list = list;
     $scope.details;
     $scope.city;
+    $scope.lat;
+    $scope.lon;
 
     $scope.isLoggedIn = auth.isLoggedIn;
 
@@ -280,9 +285,12 @@ function($scope, lists, list, auth){
       }
       lists.addPlace(list._id, {
           name : $scope.name,
-          type : $scope.details
+          type : $scope.details,
+          lat : $scope.lat,
+          lon : $scope.lon
       }).success(function(place){
           $scope.list.places.push(place);
+          console.log(place)
       });
 
       $scope.name = '';

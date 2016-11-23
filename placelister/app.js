@@ -9,6 +9,7 @@ var app = express();
 
 var mongoose = require('mongoose');
 var passport = require('passport');
+var GeoJSON = require('geojson');
 
 
 require('./models/lists');

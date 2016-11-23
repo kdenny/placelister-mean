@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var jwt = require('express-jwt');
+var GeoJSON = require('geojson');
 
 var mongoose = require('mongoose');
 var List = mongoose.model('List');
@@ -31,7 +32,7 @@ router.get('/lists', function(req, res, next) {
 router.post('/lists', auth, function(req, res, next) {
   var list = new List(req.body);
   list.author = req.payload.username;
-
+  console.log(list)
   list.save(function(err, list){
     if(err){ return next(err); }
 
@@ -55,6 +56,7 @@ router.param('list', function(req, res, next, id) {
 
 router.get('/lists/:list', function(req, res) {
   req.list.populate('places', function(err, list) {
+
     res.json(list);
   });
 
