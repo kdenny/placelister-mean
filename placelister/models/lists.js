@@ -6,6 +6,7 @@ var mongoose = require('mongoose');
 
 var ListSchema = new mongoose.Schema({
   title: String,
+  maker: String,
   upvotes: {type: Number, default: 0},
   places: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Place' }]
 });

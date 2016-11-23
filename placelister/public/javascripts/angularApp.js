@@ -1,6 +1,56 @@
 var app = angular.module('placelister', ['ui.router']);
 
 
+app.config([
+'$stateProvider',
+'$urlRouterProvider',
+function($stateProvider, $urlRouterProvider) {
+
+  $stateProvider
+    .state('home', {
+      url: '/home',
+      templateUrl: '/home.html',
+      controller: 'MainCtrl',
+      resolve: {
+        listPromise: ['lists', function(lists){
+          return lists.getAll();
+        }]
+      }
+    }).state('lists', {
+      url: '/lists/{id}',
+      templateUrl: '/lists.html',
+      controller: 'ListsCtrl',
+      resolve: {
+                list : ['$stateParams', 'lists',
+                function($stateParams, lists) {
+                    return lists.get($stateParams.id);
+            }]
+      }
+    }).state('login', {
+      url: '/login',
+      templateUrl: '/login.html',
+      controller: 'AuthCtrl',
+      onEnter: ['$state', 'auth', function($state, auth){
+        if(auth.isLoggedIn()){
+          $state.go('home');
+        }
+      }]
+    }).state('register', {
+      url: '/register',
+      templateUrl: '/register.html',
+      controller: 'AuthCtrl',
+      onEnter: ['$state', 'auth',
+      function($state, auth){
+        if(auth.isLoggedIn()){
+          $state.go('home');
+        }
+      }]
+    });
+
+  $urlRouterProvider.otherwise('home');
+}]);
+
+
 app.directive('googleplace', function() {
     return {
         require: 'ngModel',
@@ -72,7 +122,7 @@ app.directive('googleplace', function() {
 });
 
 
-app.factory('lists', ['$http', function($http){
+app.factory('lists', ['$http', 'auth', function($http, auth){
       var o = {
         lists: []
       };
@@ -84,7 +134,10 @@ app.factory('lists', ['$http', function($http){
       };
 
     o.create = function(list) {
-      return $http.post('/lists', list).success(function(data){
+      return $http.post('/lists', list, {
+          headers: {Authorization: 'Bearer '+auth.getToken()}
+      }).success(function(data){
+          console.log(data)
         o.lists.push(data);
       });
     };
@@ -96,64 +149,99 @@ app.factory('lists', ['$http', function($http){
     };
 
     o.addPlace = function(id, place) {
-	  return $http.post('/lists/' + id + '/places', place);
+	  return $http.post('/lists/' + id + '/places', place, {
+          headers: {Authorization: 'Bearer '+auth.getToken()}
+      });
 	};
 
     o.removePlace = function(id, place) {
-	  return $http.delete('/lists/' + id + '/places/' + place);
+	  return $http.delete('/lists/' + id + '/places/' + place, {
+          headers: {Authorization: 'Bearer '+auth.getToken()}
+      });
 	};
 
   return o;
 }]);
 
 
-app.config([
-'$stateProvider',
-'$urlRouterProvider',
-function($stateProvider, $urlRouterProvider) {
+app.factory('auth', ['$http', '$window', function($http, $window){
+   var auth = {};
 
-  $stateProvider
-    .state('home', {
-      url: '/home',
-      templateUrl: '/home.html',
-      controller: 'MainCtrl',
-      resolve: {
-        listPromise: ['lists', function(lists){
-          return lists.getAll();
-        }]
+    auth.saveToken = function (token){
+        $window.localStorage['placelister-token'] = token;
+    };
+
+    auth.getToken = function (){
+        return $window.localStorage['placelister-token'];
+    };
+
+    auth.isLoggedIn = function(){
+      var token = auth.getToken();
+
+      if(token){
+        var payload = JSON.parse($window.atob(token.split('.')[1]));
+
+        return payload.exp > Date.now() / 1000;
+      } else {
+        return false;
       }
-    })
+    };
 
-    .state('lists', {
-      url: '/lists/{id}',
-      templateUrl: '/lists.html',
-      controller: 'ListsCtrl',
-      resolve: {
-                list : ['$stateParams', 'lists',
-                function($stateParams, lists) {
-                    return lists.get($stateParams.id);
-            }]
+    auth.currentUser = function(){
+      if(auth.isLoggedIn()){
+        var token = auth.getToken();
+        var payload = JSON.parse($window.atob(token.split('.')[1]));
+          console.log(payload.username)
+        return payload.username;
       }
-    });
+    };
 
-  $urlRouterProvider.otherwise('home');
+    auth.register = function(user){
+        console.log(user)
+      return $http.post('/register', user).success(function(data){
+        auth.saveToken(data.token);
+      });
+    };
+
+    auth.logIn = function(user){
+      return $http.post('/login', user).success(function(data){
+        auth.saveToken(data.token);
+      });
+    };
+
+    auth.logOut = function(){
+      $window.localStorage.removeItem('placelister-token');
+    };
+
+  return auth;
 }]);
+
+
 
 
 app.controller('MainCtrl', [
 '$scope',
 'lists',
-function($scope, lists){
+'auth',
+function($scope, lists, auth){
 
   $scope.lists = lists.lists;
+
+  $scope.isLoggedIn = auth.isLoggedIn;
+
+  $scope.currentUser = auth.currentUser;
+
+    console.log(typeof(auth.currentUser()));
+
 
   $scope.addList = function(){
 
       if(!$scope.title || $scope.title === '') { return; }
-
       lists.create({
           title: $scope.title
       });
+
+
 
       $scope.title = '';
     };
@@ -172,11 +260,17 @@ app.controller('ListsCtrl', [
 '$scope',
 'lists',
 'list',
-function($scope, lists, list){
+'auth',
+function($scope, lists, list, auth){
 
     $scope.list = list;
     $scope.details;
     $scope.city;
+
+    $scope.isLoggedIn = auth.isLoggedIn;
+
+    $scope.currentUser = auth.currentUser();
+
 
 
 
@@ -207,4 +301,39 @@ function($scope, lists, list){
     };
 
 
+}]);
+
+
+app.controller('AuthCtrl', [
+'$scope',
+'$state',
+'auth',
+function($scope, $state, auth){
+  $scope.user = {};
+
+  $scope.register = function(){
+    auth.register($scope.user).error(function(error){
+      $scope.error = error;
+    }).then(function(){
+      $state.go('home');
+    });
+  };
+
+  $scope.logIn = function(){
+    auth.logIn($scope.user).error(function(error){
+      $scope.error = error;
+    }).then(function(){
+      $state.go('home');
+    });
+  };
+}]);
+
+
+app.controller('NavCtrl', [
+'$scope',
+'auth',
+function($scope, auth){
+  $scope.isLoggedIn = auth.isLoggedIn;
+  $scope.currentUser = auth.currentUser;
+  $scope.logOut = auth.logOut;
 }]);
