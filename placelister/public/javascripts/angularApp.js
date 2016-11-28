@@ -119,13 +119,15 @@ app.directive('googleplace', function() {
                 //addressComponents.push(latitude, longitude);
 
                 scope.$apply(function() {
-                    scope.details = type; // array containing each location component
-                    scope.address = textAddress;
+                    scope.details = {};
+                    scope.details.type = type;
+                    scope.details.address = textAddress;
                     scope.city = addressComponents[0];
                     scope.state = addressComponents[1];
                     scope.lat = latitude;
                     scope.lon = longitude;
                     scope.url = url;
+                    scope.realName = realName;
                     model.$setViewValue(element.val());
                 });
             });
@@ -286,6 +288,8 @@ function($scope, lists, list, auth, leafletData){
     $scope.list = list;
     $scope.details;
     $scope.city;
+    $scope.type;
+    $scope.address;
     $scope.lat;
     $scope.lon;
 
@@ -295,35 +299,57 @@ function($scope, lists, list, auth, leafletData){
 
     angular.extend($scope, {
         osloCenter: {
+            //autoDiscover: true,
+            zoom : 12
         },
         data: {markers: {}}
     });
+
 
     $scope.makePoints = function() {
         console.log("Making points")
         $scope.points = {};
         $scope.data.markers = {};
+        $scope.centerLat;
+        $scope.centerLng;
         var bounds = [];
         for (i = 0; i < $scope.list.places.length; i++) {
                 thisp = $scope.list.places[i];
                 apoint = {
                         lat: thisp.lat,
                         lng: thisp.lon,
-                        message: thisp.name
+                        message: thisp.name,
+                        //focus: true
                     };
                 var count = i;
                 $scope.points[count] = apoint;
                 bounds.push([apoint.lat, apoint.lng]);
-                //$scope.points.push(apoint);
+
+                if (i == $scope.list.places.length - 1) {
+                    leafletData.getMap("map").then(function(map) {
+                        console.log("Here")
+                        map.fitBounds(bounds, { padding: [20, 20] });
+                    });
+                    leafletData.getMap("map").then(function(map) {
+                        var bounds = map.getBounds(bounds);
+                        console.log(Object.keys(bounds._southWest));
+                        $scope.centerLat = (bounds._northEast.lat + bounds._southWest.lat) / 2;
+                        $scope.centerLng = (bounds._northEast.lng + bounds._southWest.lng) / 2;
+
+
+                        console.log($scope.centerLat);
+                    });
+                }
 
             }
-        leafletData.getMap().then(function(map) {
-                    map.fitBounds(bounds, { padding: [20, 20] });
-            });
-        console.log($scope.points)
+
         angular.extend($scope.data, {
 
-            markers : $scope.points
+            markers : $scope.points,
+            osloCenter : {
+                lat : $scope.centerLat,
+                lng : $scope.centerLng
+            }
 
         });
     };
@@ -337,13 +363,18 @@ function($scope, lists, list, auth, leafletData){
       }
       lists.addPlace(list._id, {
           name : $scope.name,
-          type : $scope.details,
+          realName : $scope.realName,
+          type : $scope.details.type,
+          url : $scope.url,
+          address : $scope.details.address,
+          city : $scope.city,
           lat : $scope.lat,
-          lon : $scope.lon,
-          focus: true
+          lon : $scope.lon
+          //focus: true
       }).success(function(place){
-          $scope.list.places.push(place);
           console.log(place)
+          $scope.list.places.push(place);
+          console.log($scope.list.places)
           $scope.makePoints();
       });
 
@@ -353,11 +384,13 @@ function($scope, lists, list, auth, leafletData){
 
     $scope.removePlace = function(place) {
 
+
       lists.removePlace(list._id, place._id)
           .success(function(argt){
-            var pindex = list.places.indexOf(argt);
-            var rmd = list.places.splice(pindex, 1)[0];
-            $scope.list.places = list.places;
+            //  console.log(argt)
+            //console.log($scope.list.places)
+            $scope.list.places.splice(argt, 1)
+
             $scope.makePoints();
       });
 

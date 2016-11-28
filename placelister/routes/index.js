@@ -129,11 +129,13 @@ router.delete('/lists/:list/places/:place', auth, function(req, res, next) {
     if(err){
         return next(err);
     }
-    var placeloc = req.list.places.indexOf(place);
+    var placeloc = req.list.places.indexOf(place._id);
+    var oldlist = req.list;
     req.list.places.splice(placeloc,1)[0];
+
     req.list.save(function(err, list) {
       if(err){ return next(err); }
-      res.json(place);
+      res.json(placeloc);
     });
   });
 });
