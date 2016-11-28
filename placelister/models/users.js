@@ -9,6 +9,12 @@ var UserSchema = new mongoose.Schema({
   salt: String
 });
 
+UserSchema.virtual('lists', {
+  ref: 'List',
+  localField: 'username',
+  foreignField: 'author'
+});
+
 UserSchema.methods.generateJWT = function() {
 
   // set expiration to 60 days

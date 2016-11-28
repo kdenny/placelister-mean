@@ -4,6 +4,7 @@ var passport = require('passport');
 var jwt = require('express-jwt');
 var GeoJSON = require('geojson');
 
+
 var mongoose = require('mongoose');
 var List = mongoose.model('List');
 var Place = mongoose.model('Place');
@@ -52,6 +53,19 @@ router.param('list', function(req, res, next, id) {
     return next();
   });
 });
+
+router.get('/dashboard', auth, function(req, res) {
+    var user = req.payload.username;
+
+    List.find({author : user}, function(err, lists){
+    if(err){ return next(err); }
+
+    res.json(lists);
+  });
+
+});
+
+
 
 
 router.get('/lists/:list', function(req, res) {
@@ -116,7 +130,7 @@ router.delete('/lists/:list/places/:place', auth, function(req, res, next) {
         return next(err);
     }
     var placeloc = req.list.places.indexOf(place);
-    req.list.places.splice(placeloc,1);
+    req.list.places.splice(placeloc,1)[0];
     req.list.save(function(err, list) {
       if(err){ return next(err); }
       res.json(place);

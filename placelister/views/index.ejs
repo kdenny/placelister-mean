@@ -2,19 +2,15 @@
   <head>
     <title>Placelister</title>
 
-    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
-
     <script src="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.js"></script>
-
-
-
     <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.10/angular.min.js"></script>
-
     <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.2.10/angular-ui-router.js"></script>
-
     <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCGkffnTSjs9i0PpPXthYJ93TBSJhJHEnQ&libraries=places&sensor=false"></script>
 
+    <script src="/javascripts/angular-leaflet-directive.min.js"></script>
 
+    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.1/leaflet.css">
     <link href="https://fonts.googleapis.com/css?family=News+Cycle|Open+Sans" rel="stylesheet">
 
 
@@ -33,9 +29,16 @@
             font-size: 16px;
         }
 
+        #map {
+            height : 300px;
+        }
+
+        #home-screen {
+            margin-left : 40px;
+        }
+
     </style>
   </head>
-
 
   <body ng-app="placelister">
 
@@ -54,7 +57,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav navbar-right">
                   <li ng-show="isLoggedIn()"><a>{{ currentUser() }}</a></li>
-                  <li><a>Your Lists</a></li>
+                  <li ng-show="isLoggedIn()"><a href="/#/dashboard">Your Lists</a></li>
                   <li ng-show="isLoggedIn()"><a href="" ng-click="logOut()">Log Out</a></li>
                   <li ng-hide="isLoggedIn()"><a href="/#/login">Log In</a></li>
                   <li ng-hide="isLoggedIn()"><a href="/#/register">Register</a></li>
@@ -66,14 +69,14 @@
 
 
     <div class="row">
-        <div class="col-md-6 col-md-offset-3">
+        <div class="col-md-12">
           <ui-view></ui-view>
         </div>
     </div>
 
-
-
     <script type="text/ng-template" id="/home.html">
+
+        <div class="row" id="home-screen">
 
         <div class="page-header">
             <h1>Placelister</h1>
@@ -86,13 +89,10 @@
             {{list.upvotes}}
           <span style="font-size:20px; margin-left:10px;">
               <span>
-                {{list.title}}
-              </span>
-              <span>
-                <a href="#/lists/{{list._id}}">Places</a>
+                <a href="#/lists/{{list._id}}">{{list.title}}</a>
               </span>
               <span ng-show="list.author">
-                  posted by <a>{{list.author}}</a> |
+                  posted by <a>{{list.author}}</a>
               </span>
           </span>
 
@@ -101,13 +101,54 @@
         <form ng-submit="addList()" ng-show="isLoggedIn()" style="margin-top:30px;">
           <h3>Add a new list</h3>
           <div class="form-group">
-          <input type="text" class="form-control" placeholder="Title" ng-model="title"></input>
+          <input type="text" class="form-control" placeholder="Title" ng-model="title" style="width:60vw;"></input>
           </div>
           <button type="submit">Add List</button>
         </form>
 
         <div ng-hide="isLoggedIn()">
           <h3>You need to <a href="/#/login">Log In</a> or <a href="/#/register">Register</a> before you can add a post.</h3>
+        </div>
+
+        </div>
+
+    </script>
+
+
+    <script type="text/ng-template" id="/dashboard.html">
+
+        <div class="row" id="home-screen">
+
+        <div class="page-header">
+            <h1>Placelister</h1>
+        </div>
+
+
+        <div ng-repeat="list in theselists | orderBy: '-upvotes'">
+
+          <span style="font-size:20px; margin-left:10px;">
+              <span>
+                <a href="#/lists/{{list._id}}">{{list.title}}</a>
+              </span>
+              <span ng-show="list.author">
+                  posted by <a>{{list.author}}</a>
+              </span>
+          </span>
+
+        </div>
+
+        <form ng-submit="addList()" ng-show="isLoggedIn()" style="margin-top:30px;">
+          <h3>Add a new list</h3>
+          <div class="form-group">
+          <input type="text" class="form-control" placeholder="Title" ng-model="title" style="width:60vw;"></input>
+          </div>
+          <button type="submit">Add List</button>
+        </form>
+
+        <div ng-hide="isLoggedIn()">
+          <h3>You need to <a href="/#/login">Log In</a> or <a href="/#/register">Register</a> before you can add a post.</h3>
+        </div>
+
         </div>
 
     </script>
@@ -119,17 +160,26 @@
           <span ng-show="list.author">
             {{list.title}} by {{list.author}}
           </span>
+            <span ng-hide="list.author">
+            {{list.title}}
+          </span>
         </h3>
       </div>
 
+      <div class="col-sm-5">
       <div ng-repeat="place in list.places">
         <span class="glyphicon glyphicon-thumbs-up" ng-click="removePlace(place)"></span>
         <span style="font-size:20px;">
           {{place.name}} {{place.type}}
         </span>
       </div>
+      </div>
 
+      <div class="col-sm-7">
+      <leaflet id="map" center="osloCenter" markers="data.markers"></leaflet>
+      </div>
 
+      <div class="col-sm-6">
       <form ng-submit="addPlace()" ng-show="isLoggedIn()" style="margin-top:30px;">
         <h3>Add a new place</h3>
 

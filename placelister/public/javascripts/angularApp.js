@@ -1,4 +1,4 @@
-var app = angular.module('placelister', ['ui.router']);
+var app = angular.module('placelister', ['ui.router', 'leaflet-directive']);
 
 
 app.config([
@@ -45,6 +45,16 @@ function($stateProvider, $urlRouterProvider) {
           $state.go('home');
         }
       }]
+    }).state('dashboard', {
+      url: '/dashboard',
+      templateUrl: '/dashboard.html',
+      controller: 'DashboardCtrl',
+      resolve: {
+                list : ['lists',
+                function(lists) {
+                    return lists.getUserLists();
+            }]
+      }
     });
 
   $urlRouterProvider.otherwise('home');
@@ -135,6 +145,14 @@ app.factory('lists', ['$http', 'auth', function($http, auth){
         });
       };
 
+    o.getUserLists = function() {
+        return $http.get('/dashboard/', {
+                headers: {Authorization: 'Bearer '+auth.getToken()}
+            }).then(function(res){
+            return res.data;
+        });
+      };
+
     o.create = function(list) {
       return $http.post('/lists', list, {
           headers: {Authorization: 'Bearer '+auth.getToken()}
@@ -194,7 +212,6 @@ app.factory('auth', ['$http', '$window', function($http, $window){
       if(auth.isLoggedIn()){
         var token = auth.getToken();
         var payload = JSON.parse($window.atob(token.split('.')[1]));
-          console.log(payload.username)
         return payload.username;
       }
     };
@@ -234,7 +251,6 @@ function($scope, lists, auth){
 
   $scope.currentUser = auth.currentUser;
 
-    console.log(typeof(auth.currentUser()));
 
 
   $scope.addList = function(){
@@ -264,7 +280,8 @@ app.controller('ListsCtrl', [
 'lists',
 'list',
 'auth',
-function($scope, lists, list, auth){
+'leafletData',
+function($scope, lists, list, auth, leafletData){
 
     $scope.list = list;
     $scope.details;
@@ -276,7 +293,42 @@ function($scope, lists, list, auth){
 
     $scope.currentUser = auth.currentUser();
 
+    angular.extend($scope, {
+        osloCenter: {
+        },
+        data: {markers: {}}
+    });
 
+    $scope.makePoints = function() {
+        console.log("Making points")
+        $scope.points = {};
+        $scope.data.markers = {};
+        var bounds = [];
+        for (i = 0; i < $scope.list.places.length; i++) {
+                thisp = $scope.list.places[i];
+                apoint = {
+                        lat: thisp.lat,
+                        lng: thisp.lon,
+                        message: thisp.name
+                    };
+                var count = i;
+                $scope.points[count] = apoint;
+                bounds.push([apoint.lat, apoint.lng]);
+                //$scope.points.push(apoint);
+
+            }
+        leafletData.getMap().then(function(map) {
+                    map.fitBounds(bounds, { padding: [20, 20] });
+            });
+        console.log($scope.points)
+        angular.extend($scope.data, {
+
+            markers : $scope.points
+
+        });
+    };
+
+    $scope.makePoints();
 
 
     $scope.addPlace = function() {
@@ -287,25 +339,30 @@ function($scope, lists, list, auth){
           name : $scope.name,
           type : $scope.details,
           lat : $scope.lat,
-          lon : $scope.lon
+          lon : $scope.lon,
+          focus: true
       }).success(function(place){
           $scope.list.places.push(place);
           console.log(place)
+          $scope.makePoints();
       });
 
       $scope.name = '';
+
     };
 
     $scope.removePlace = function(place) {
 
       lists.removePlace(list._id, place._id)
           .success(function(argt){
-            var pindex = list.places.indexOf(place);
-            var rmd = list.places.splice(pindex, 1)[0]
+            var pindex = list.places.indexOf(argt);
+            var rmd = list.places.splice(pindex, 1)[0];
             $scope.list.places = list.places;
+            $scope.makePoints();
       });
 
       $scope.name = '';
+
     };
 
 
@@ -344,4 +401,43 @@ function($scope, auth){
   $scope.isLoggedIn = auth.isLoggedIn;
   $scope.currentUser = auth.currentUser;
   $scope.logOut = auth.logOut;
+}]);
+
+
+app.controller('DashboardCtrl', [
+'$scope',
+'lists',
+'list',
+'auth',
+function($scope, lists, list, auth){
+
+
+  $scope.theselists = list;
+
+  console.log($scope.theselists)
+
+  $scope.isLoggedIn = auth.isLoggedIn;
+
+  $scope.currentUser = auth.currentUser;
+
+
+
+  $scope.addList = function(){
+
+      if(!$scope.title || $scope.title === '') { return; }
+      lists.create({
+          title: $scope.title
+      }).success(function(list){
+          $scope.theselists.push(list);
+      });
+
+
+
+
+      $scope.title = '';
+    };
+
+
+
+
 }]);
