@@ -316,32 +316,32 @@ function($scope, lists, list, auth, leafletData){
         $scope.centerLng;
         var bounds = [];
         for (i = 0; i < $scope.list.places.length; i++) {
-                thisp = $scope.list.places[i];
-                apoint = {
-                        lat: thisp.lat,
-                        lng: thisp.lon,
-                        message: thisp.name,
-                        //focus: true
-                    };
-                var count = i;
-                $scope.points[count] = apoint;
-                bounds.push([apoint.lat, apoint.lng]);
+            thisp = $scope.list.places[i];
+            apoint = {
+                    lat: thisp.lat,
+                    lng: thisp.lon,
+                    id: thisp._id,
+                    message: thisp.realName + "<br>" + thisp.address,
+                    //focus: true
+                };
+            var count = i;
+            $scope.points[count] = apoint;
+            bounds.push([apoint.lat, apoint.lng]);
 
-                if (i == $scope.list.places.length - 1) {
-                    leafletData.getMap("map").then(function(map) {
-                        console.log("Here")
-                        map.fitBounds(bounds, { padding: [20, 20] });
-                    });
-                    leafletData.getMap("map").then(function(map) {
-                        var bounds = map.getBounds(bounds);
-                        console.log(Object.keys(bounds._southWest));
-                        $scope.centerLat = (bounds._northEast.lat + bounds._southWest.lat) / 2;
-                        $scope.centerLng = (bounds._northEast.lng + bounds._southWest.lng) / 2;
+            if (i == $scope.list.places.length - 1) {
+                leafletData.getMap("map").then(function(map) {
+                    console.log("Here")
+                    map.fitBounds(bounds, { padding: [20, 20] });
+                });
+                leafletData.getMap("map").then(function(map) {
+                    var bounds = map.getBounds(bounds);
+                    console.log(Object.keys(bounds._southWest));
+                    $scope.centerLat = (bounds._northEast.lat + bounds._southWest.lat) / 2;
+                    $scope.centerLng = (bounds._northEast.lng + bounds._southWest.lng) / 2;
 
-
-                        console.log($scope.centerLat);
-                    });
-                }
+                    console.log($scope.centerLat);
+                });
+            }
 
             }
 
@@ -370,6 +370,7 @@ function($scope, lists, list, auth, leafletData){
           url : $scope.url,
           address : $scope.details.address,
           city : $scope.city,
+          //list_type : $scope.list_type,
           lat : $scope.lat,
           lon : $scope.lon
           //focus: true
@@ -397,6 +398,35 @@ function($scope, lists, list, auth, leafletData){
       });
 
       $scope.name = '';
+
+    };
+
+    $scope.highlightMarker = function(place) {
+        //console.log($scope.data.markers)
+        var pid = place._id;
+        var marks = {};
+        marks = $scope.data.markers;
+        console.log(marks)
+
+        for (i = 0; i < Object.keys(marks).length; i++) {
+            console.log($scope.data.markers[i])
+            if (marks[i].id == pid) {
+                marks[i].focus = true;
+            }
+            else {
+                marks[i].focus = false;
+            };
+        };
+
+        angular.extend($scope.data, {
+
+            markers : marks,
+            osloCenter : {
+                lat : $scope.centerLat,
+                lng : $scope.centerLng
+            }
+
+        });
 
     };
 
@@ -453,6 +483,7 @@ function($scope, lists, list, auth){
 
   $scope.isLoggedIn = auth.isLoggedIn;
 
+
   $scope.currentUser = auth.currentUser;
 
 
@@ -471,15 +502,5 @@ function($scope, lists, list, auth){
 
       $scope.title = '';
     };
-
-
-
-
-}]);
-
-app.controller('AccordionDemoCtrl', [
-
-function ($scope) {
-
 
 }]);
