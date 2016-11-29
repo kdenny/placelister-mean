@@ -1,4 +1,4 @@
-var app = angular.module('placelister', ['ui.router', 'leaflet-directive']);
+var app = angular.module('placelister', ['ui.router', 'leaflet-directive', 'ngAnimate', 'ui.bootstrap']);
 
 
 app.config([
@@ -293,6 +293,8 @@ function($scope, lists, list, auth, leafletData){
     $scope.lat;
     $scope.lon;
 
+    $scope.oneAtATime = true;
+
     $scope.isLoggedIn = auth.isLoggedIn;
 
     $scope.currentUser = auth.currentUser();
@@ -471,6 +473,13 @@ function($scope, lists, list, auth){
     };
 
 
+
+
+}]);
+
+app.controller('AccordionDemoCtrl', [
+
+function ($scope) {
 
 
 }]);

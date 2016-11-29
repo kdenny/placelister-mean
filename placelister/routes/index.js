@@ -2,7 +2,6 @@ var express = require('express');
 var router = express.Router();
 var passport = require('passport');
 var jwt = require('express-jwt');
-var GeoJSON = require('geojson');
 
 
 var mongoose = require('mongoose');
