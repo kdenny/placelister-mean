@@ -304,7 +304,16 @@ function($scope, lists, list, auth, leafletData){
             //autoDiscover: true,
             zoom : 12
         },
-        data: {markers: {}}
+        data: {markers: {}},
+        layers: {
+                    baselayers: {
+                        xyz: {
+                            name: 'Mapnik',
+                            url: 'http://{s}.tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png',
+                            type: 'xyz'
+                        }
+                    }
+                }
     });
 
 
@@ -402,14 +411,11 @@ function($scope, lists, list, auth, leafletData){
     };
 
     $scope.highlightMarker = function(place) {
-        //console.log($scope.data.markers)
         var pid = place._id;
         var marks = {};
         marks = $scope.data.markers;
-        console.log(marks)
 
         for (i = 0; i < Object.keys(marks).length; i++) {
-            console.log($scope.data.markers[i])
             if (marks[i].id == pid) {
                 marks[i].focus = true;
             }
@@ -422,8 +428,8 @@ function($scope, lists, list, auth, leafletData){
 
             markers : marks,
             osloCenter : {
-                lat : $scope.centerLat,
-                lng : $scope.centerLng
+                lat : place.lat,
+                lng : place.lng
             }
 
         });
