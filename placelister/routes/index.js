@@ -19,7 +19,7 @@ router.get('/', function(req, res, next) {
 });
 
 
-// List Methods
+// List Methods to check
 
 router.get('/lists', function(req, res, next) {
   List.find(function(err, lists){
